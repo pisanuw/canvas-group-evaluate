@@ -103,6 +103,24 @@ def _next_link(link_header: str) -> str | None:
     return None
 
 
+_CTRL_RE = re.compile(r"[\x00-\x1f]+")
+_WS_RE = re.compile(r"\s+")
+
+
+def clean_text(s: str | None) -> str | None:
+    """Replace control chars (incl. tab/newline) with a space, collapse runs.
+
+    Canvas occasionally returns group names with embedded tabs (e.g. used to
+    visually align "Group 1<TAB>Project Name" elsewhere). Those tabs break
+    JSON output and render badly in form question labels.
+    """
+    if s is None:
+        return None
+    s = _CTRL_RE.sub(" ", s)
+    s = _WS_RE.sub(" ", s).strip()
+    return s or None
+
+
 def netid_from_email(email: str | None) -> str | None:
     if not email:
         return None
@@ -124,14 +142,14 @@ def fetch_from_canvas(course_id: int, group_category_id: int) -> list[dict]:
         )
         members = sorted(members, key=lambda m: m.get("sortable_name") or m.get("name") or "")
         roster.append({
-            "group": g.get("name"),
+            "group": clean_text(g.get("name")),
             "canvas_group_id": g.get("id"),
             "members": [
                 {
-                    "name": m.get("name"),
-                    "email": m.get("email"),
-                    "login_id": m.get("login_id"),
-                    "netid": netid_from_email(m.get("email")) or m.get("login_id"),
+                    "name": clean_text(m.get("name")),
+                    "email": clean_text(m.get("email")),
+                    "login_id": clean_text(m.get("login_id")),
+                    "netid": clean_text(netid_from_email(m.get("email")) or m.get("login_id")),
                 }
                 for m in members
             ],
