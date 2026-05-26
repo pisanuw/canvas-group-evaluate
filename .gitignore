@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+.venv/
+.env
+roster.json
+build_form.gs
+*.local.*
